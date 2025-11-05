@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Facture</title>
+    <style>
+	@media print {
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+    }
+    #invoice {
+        page-break-after: always;
+    }
+}
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-section, .preview-section {
+		    margin: 30px;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .items-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .catalog-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .catalog-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .catalog-item:hover {
+            border-color: #667eea;
+        }
+
+        .catalog-item-info {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .catalog-item-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .catalog-item-price {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .catalog-item-tax {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .catalog-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-icon {
+            width: 35px;
+            height: 35px;
+            padding: 0;
+            font-size: 16px;
+            border-radius: 6px;
+        }
+
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #e67e22;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 40px;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: end;
+        }
+
+        .adjustment-display {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 5px;
+        }
+
+        .adjustment-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-bottom: 8px;
+            justify-content: center;
+        }
+
+        .btn-adjust {
+            flex: 1;
+            min-width: 40px;
+            height: 30px;
+            padding: 0;
+            font-size: 11px;
+            border-radius: 4px;
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-adjust:hover {
+            background: #2980b9;
+        }
+
+        .btn-adjust.negative {
+            background: #e74c3c;
+        }
+
+        .btn-adjust.negative:hover {
+            background: #c0392b;
+        }
+
+        .btn-adjust.zero {
+            background: #95a5a6;
+        }
+
+        .btn-adjust.zero:hover {
+            background: #7f8c8d;
+        }
+
+        .adjustment-info {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            padding: 5px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-add {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-add:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-remove {
+            background: #ff4757;
+            color: white;
+            padding: 10px;
+            font-size: 18px;
+        }
+
+        .btn-remove:hover {
+            background: #ff3838;
+        }
+
+        .btn-generate {
+            background: #2ecc71;
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 16px;
+        }
+
+        .btn-generate:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .btn-print {
+            background: #3498db;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            padding: 15px;
+            font-size: 16px;
+        }
+
+        .btn-print:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-export-pdf {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-export-pdf:hover {
+            background: #c0392b;
+        }
+
+        .btn-export-word {
+            background: #2980b9;
+            color: white;
+        }
+
+        .btn-export-word:hover {
+            background: #21618c;
+        }
+
+        .btn-catalog {
+            background: #9b59b6;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+        }
+
+        .btn-catalog:hover {
+            background: #8e44ad;
+        }
+
+        .btn-new-item {
+            background: #16a085;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .btn-new-item:hover {
+            background: #138d75;
+        }
+
+        .btn-export-json {
+            background: #f39c12;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-export-json:hover {
+            background: #e67e22;
+        }
+
+        .btn-save {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #27ae60;
+        }
+
+        .btn-cancel {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #7f8c8d;
+        }
+
+        .invoice {
+            padding: 40px;
+            background: white;
+        }
+
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .company-info h2 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .invoice-details {
+            text-align: right;
+        }
+
+        .invoice-number {
+            font-size: 24px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .client-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .invoice-table {
+           border-bottom: double;
+           width: 100%;
+           border-collapse: collapse;
+           margin: 30px 0;
+        }
+
+        .invoice-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .invoice-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .invoice-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        
+
+        .totals {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: flex-end;
+            padding: 8px 0;
+        }
+
+        .totals-label {
+            width: 150px;
+            font-weight: 600;
+            margin-right: 20px;
+        }
+
+        .totals-value {
+            width: 300px;
+            text-align: center;
+        }
+
+        .total-final {
+            border-top: 3px solid #667eea;
+            margin-top: 10px;
+            padding-top: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: #ff4757;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 20px;
+            padding: 0;
+        }
+
+        .modal-form {
+            margin-top: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .form-section {
+                display: none;
+            }
+            .preview-section {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            .btn-print, .export-buttons {
+                display: none;
+            }
+        }
+
+        @media (max-width: 968px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .item-row {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+            .export-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <!-- Include html2pdf library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="form-section">
+            <h1>📄 Générateur de Facture</h1>
+            
+            <div class="form-group">
+                <label>Nom de l'entreprise</label>
+                <input type="text" id="companyName" placeholder="Votre Entreprise SARL">
+            </div>
+            
+            <div class="form-group">
+                <label>Adresse de l'entreprise</label>
+                <textarea id="companyAddress" placeholder="123 Rue Example&#10;Ville, Code Postal"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Numéro de facture</label>
+                <input type="text" id="invoiceNumber" placeholder="INV-2025-001">
+            </div>
+            
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="invoiceDate">
+            </div>
+            
+            <div class="form-group">
+                <label>Nom du client</label>
+                <input type="text" id="clientName" placeholder="Nom du client">
+            </div>
+            
+            <div class="form-group">
+                <label>Adresse du client</label>
+                <textarea id="clientAddress" placeholder="Adresse du client"></textarea>
+            </div>
+            
+            <div class="items-section">
+                <h3 style="margin-bottom: 15px; color: #667eea;">Articles / Services</h3>
+                
+                <button class="btn-catalog" onclick="openCatalog()">📦 Choisir depuis le catalogue</button>
+                
+                <div style="margin-top: 20px;">
+                    <div id="itemsContainer">
+                        <div class="item-row">
+                            <input type="text" placeholder="Description" class="item-desc">
+                            <input type="number" placeholder="Quantité" class="item-qty" min="1" value="1">
+                            <input type="number" placeholder="Prix unitaire" class="item-price" min="0" step="0.01">
+                            <input type="number" placeholder="TVA %" class="item-tax" min="0" max="100" value="19">
+                            <button class="btn-remove" onclick="removeItem(this)">×</button>
+                            <div class="adjustment-display">
+                                <div class="adjustment-controls">
+                                    <button class="btn-adjust negative" onclick="adjustPrice(this, -30)">-30%</button>
+                                    <button class="btn-adjust negative" onclick="adjustPrice(this, -20)">-20%</button>
+                                    <button class="btn-adjust negative" onclick="adjustPrice(this, -10)">-10%</button>
+                                    <button class="btn-adjust negative" onclick="adjustPrice(this, -5)">-5%</button>
+                                    <button class="btn-adjust negative" onclick="adjustPrice(this, -3)">-3%</button>
+                                    <button class="btn-adjust negative" onclick="adjustPrice(this, -1)">-1%</button>
+                                    <button class="btn-adjust zero" onclick="adjustPrice(this, 0)">0%</button>
+                                    <button class="btn-adjust" onclick="adjustPrice(this, 1)">+1%</button>
+                                    <button class="btn-adjust" onclick="adjustPrice(this, 3)">+3%</button>
+                                    <button class="btn-adjust" onclick="adjustPrice(this, 5)">+5%</button>
+                                    <button class="btn-adjust" onclick="adjustPrice(this, 10)">+10%</button>
+                                    <button class="btn-adjust" onclick="adjustPrice(this, 20)">+20%</button>
+                                    <button class="btn-adjust" onclick="adjustPrice(this, 30)">+30%</button>
+                                </div>
+                                <div class="adjustment-info">
+                                    Ajustement: <span class="adjustment-value">0%</span> | Prix de base: <span class="base-price-value">0.00</span> DZD
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-add" onclick="addItem()">+ Ajouter un article</button>
+                </div>
+            </div>
+            
+            <button class="btn-generate" onclick="generateInvoice()">Générer la facture</button>
+        </div>
+        
+        <div class="preview-section">
+            <div class="invoice" id="invoice">
+                <div class="invoice-header">
+                    <div class="company-info">
+                        <h2 id="previewCompanyName">Votre Entreprise</h2>
+                        <div id="previewCompanyAddress">Adresse de l'entreprise</div>
+                    </div>
+                    <div class="invoice-details">
+                        <div class="invoice-number" id="previewInvoiceNumber">FACTURE N° ---</div>
+                        <div style="margin-top: 10px;">Date: <span id="previewDate">--/--/----</span></div>
+                    </div>
+                </div>
+                
+                <div class="client-section">
+                    <div class="section-title">FACTURER À:</div>
+                    <div id="previewClientName">Nom du client</div>
+                    <div id="previewClientAddress">Adresse du client</div>
+                </div>
+                
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-right">Quantité</th>
+                            <th class="text-right">Prix unitaire</th>
+                            <th class="text-right">TVA</th>
+                            <th class="text-right">Total HT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceItems">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #999;">Ajoutez des articles pour générer la facture</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="totals" id="totalsSection" style="display: none;">
+                    <div class="totals-row">
+                        <div class="totals-label">Sous-total HT:</div>
+                        <div class="totals-value" id="subtotal">0.00 DZD</div>
+                    </div>
+                    <div class="totals-row">
+                        <div class="totals-label">TVA:</div>
+                        <div class="totals-value" id="taxAmount">0.00 DZD</div>
+                    </div>
+                    <div class="totals-row total-final">
+                        <div class="totals-label">TOTAL TTC:</div>
+                        <div class="totals-value" id="total">0.00 DZD</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="export-buttons">
+                <button class="btn-export-pdf" onclick="exportToPDF()">📄 Exporter PDF</button>
+                <button class="btn-export-word" onclick="exportToWord()">📝 Exporter Word</button>
+            </div>
+            <button class="btn-print" onclick="window.print()">🖨️ Imprimer</button>
+        </div>
+    </div>
+
+    <!-- Catalog Modal -->
+    <div class="modal" id="catalogModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color: #667eea;">📦 Catalogue de produits</h2>
+                <button class="modal-close" onclick="closeCatalog()">×</button>
+            </div>
+            <button class="btn-new-item" onclick="openAddItemForm()">+ Ajouter un nouveau produit</button>
+            <button class="btn-export-json" onclick="exportCatalogToJSON()">💾 Exporter Catalogue (JSON)</button>
+            <div class="catalog-section" id="catalogItems">
+                <!-- Catalog items will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Item Modal -->
+    <div class="modal" id="itemFormModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color: #667eea;" id="formTitle">Ajouter un produit</h2>
+                <button class="modal-close" onclick="closeItemForm()">×</button>
+            </div>
+            <div class="modal-form">
+                <div class="form-group">
+                    <label>Nom du produit/service</label>
+                    <input type="text" id="itemFormName" placeholder="Ex: Ordinateur portable HP">
+                </div>
+                <div class="form-group">
+                    <label>Prix unitaire (DZD)</label>
+                    <input type="number" id="itemFormPrice" placeholder="0.00" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>TVA (%)</label>
+                    <input type="number" id="itemFormTax" placeholder="19" min="0" max="100" value="19">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-save" onclick="saveItem()">💾 Enregistrer</button>
+                    <button class="btn-cancel" onclick="closeItemForm()">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Product catalog - stored in memory
+        let catalog = [
+            { name: "Ordinateur portable HP", price: 85000, tax: 19 },
+            { name: "Souris sans fil Logitech", price: 2500, tax: 19 },
+            { name: "Clavier mécanique", price: 4500, tax: 19 },
+            { name: "Écran 24 pouces", price: 32000, tax: 19 },
+            { name: "Imprimante laser", price: 45000, tax: 19 },
+            { name: "Disque dur externe 1TB", price: 8000, tax: 19 },
+            { name: "Casque audio Bluetooth", price: 6500, tax: 19 },
+            { name: "Webcam HD", price: 5000, tax: 19 },
+            { name: "Câble HDMI 2m", price: 800, tax: 19 },
+            { name: "Hub USB 4 ports", price: 1500, tax: 19 },
+            { name: "Support pour ordinateur portable", price: 3000, tax: 19 },
+            { name: "Tapis de souris", price: 500, tax: 19 },
+            { name: "Service de consultation IT (1h)", price: 5000, tax: 19 },
+            { name: "Installation logiciel", price: 3000, tax: 19 },
+            { name: "Formation bureautique (1 jour)", price: 15000, tax: 19 },
+            { name: "Maintenance système", price: 8000, tax: 19 },
+            { name: "Licence Microsoft Office", price: 25000, tax: 19 },
+            { name: "Antivirus 1 an", price: 4000, tax: 19 },
+            { name: "Routeur WiFi", price: 7500, tax: 19 },
+            { name: "Switch réseau 8 ports", price: 12000, tax: 19 }
+        ];
+
+        let editingIndex = -1;
+
+        // Set today's date as default
+        document.getElementById('invoiceDate').valueAsDate = new Date();
+
+        // Generate catalog display
+        function loadCatalog() {
+            const catalogContainer = document.getElementById('catalogItems');
+            catalogContainer.innerHTML = '';
+            
+            if (catalog.length === 0) {
+                catalogContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Aucun produit dans le catalogue. Ajoutez-en un!</div>';
+                return;
+            }
+
+            catalog.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'catalog-item';
+                itemDiv.innerHTML = `
+                    <div class="catalog-item-info" onclick="selectCatalogItem(${index})">
+                        <div class="catalog-item-name">${item.name}</div>
+                        <div class="catalog-item-tax">TVA: ${item.tax}%</div>
+                        <div class="catalog-item-price">${item.price.toFixed(2)} DZD</div>
+                    </div>
+                    <div class="catalog-item-actions">
+                        <button class="btn-icon btn-edit" onclick="editCatalogItem(${index})" title="Modifier">✏️</button>
+                        <button class="btn-icon btn-delete" onclick="deleteCatalogItem(${index})" title="Supprimer">🗑️</button>
+                    </div>
+                `;
+                catalogContainer.appendChild(itemDiv);
+            });
+        }
+
+        function openCatalog() {
+            loadCatalog();
+            document.getElementById('catalogModal').classList.add('active');
+        }
+
+        function closeCatalog() {
+            document.getElementById('catalogModal').classList.remove('active');
+        }
+
+        function openAddItemForm() {
+            editingIndex = -1;
+            document.getElementById('formTitle').textContent = 'Ajouter un produit';
+            document.getElementById('itemFormName').value = '';
+            document.getElementById('itemFormPrice').value = '';
+            document.getElementById('itemFormTax').value = '19';
+            document.getElementById('itemFormModal').classList.add('active');
+        }
+
+        function editCatalogItem(index) {
+            editingIndex = index;
+            const item = catalog[index];
+            document.getElementById('formTitle').textContent = 'Modifier le produit';
+            document.getElementById('itemFormName').value = item.name;
+            document.getElementById('itemFormPrice').value = item.price;
+            document.getElementById('itemFormTax').value = item.tax;
+            document.getElementById('itemFormModal').classList.add('active');
+        }
+
+        function closeItemForm() {
+            document.getElementById('itemFormModal').classList.remove('active');
+        }
+
+        function saveItem() {
+            const name = document.getElementById('itemFormName').value.trim();
+            const price = parseFloat(document.getElementById('itemFormPrice').value);
+            const tax = parseFloat(document.getElementById('itemFormTax').value);
+
+            if (!name) {
+                alert('Veuillez entrer un nom de produit');
+                return;
+            }
+
+            if (isNaN(price) || price < 0) {
+                alert('Veuillez entrer un prix valide');
+                return;
+            }
+
+            if (isNaN(tax) || tax < 0 || tax > 100) {
+                alert('Veuillez entrer une TVA valide (0-100%)');
+                return;
+            }
+
+            const newItem = { name, price, tax };
+
+            if (editingIndex === -1) {
+                // Add new item
+                catalog.push(newItem);
+            } else {
+                // Update existing item
+                catalog[editingIndex] = newItem;
+            }
+
+            closeItemForm();
+            loadCatalog();
+        }
+
+        function deleteCatalogItem(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce produit?')) {
+                catalog.splice(index, 1);
+                loadCatalog();
+            }
+        }
+
+        function selectCatalogItem(index) {
+            const item = catalog[index];
+            const container = document.getElementById('itemsContainer');
+            const lastRow = container.lastElementChild;
+            
+            // Check if last row is empty, if so fill it
+            const lastDesc = lastRow.querySelector('.item-desc');
+            if (lastDesc.value === '') {
+                lastDesc.value = item.name;
+                const priceInput = lastRow.querySelector('.item-price');
+                priceInput.value = item.price;
+                priceInput.setAttribute('data-base-price', item.price);
+                lastRow.querySelector('.item-tax').value = item.tax;
+                lastRow.querySelector('.item-qty').value = 1;
+                lastRow.querySelector('.adjustment-value').textContent = '0%';
+                lastRow.querySelector('.base-price-value').textContent = item.price.toFixed(2);
+            } else {
+                // Otherwise create new row
+                const newRow = document.createElement('div');
+                newRow.className = 'item-row';
+                newRow.innerHTML = `
+                    <input type="text" placeholder="Description" class="item-desc" value="${item.name}">
+                    <input type="number" placeholder="Quantité" class="item-qty" min="1" value="1">
+                    <input type="number" placeholder="Prix unitaire" class="item-price" min="0" step="0.01" value="${item.price}" data-base-price="${item.price}">
+                    <input type="number" placeholder="TVA %" class="item-tax" min="0" max="100" value="${item.tax}">
+                    <button class="btn-remove" onclick="removeItem(this)">×</button>
+                    <div class="adjustment-display">
+                        <div class="adjustment-controls">
+                            <button class="btn-adjust negative" onclick="adjustPrice(this, -30)">-30%</button>
+                            <button class="btn-adjust negative" onclick="adjustPrice(this, -20)">-20%</button>
+                            <button class="btn-adjust negative" onclick="adjustPrice(this, -10)">-10%</button>
+                            <button class="btn-adjust negative" onclick="adjustPrice(this, -5)">-5%</button>
+                            <button class="btn-adjust negative" onclick="adjustPrice(this, -3)">-3%</button>
+                            <button class="btn-adjust negative" onclick="adjustPrice(this, -1)">-1%</button>
+                            <button class="btn-adjust zero" onclick="adjustPrice(this, 0)">0%</button>
+                            <button class="btn-adjust" onclick="adjustPrice(this, 1)">+1%</button>
+                            <button class="btn-adjust" onclick="adjustPrice(this, 3)">+3%</button>
+                            <button class="btn-adjust" onclick="adjustPrice(this, 5)">+5%</button>
+                            <button class="btn-adjust" onclick="adjustPrice(this, 10)">+10%</button>
+                            <button class="btn-adjust" onclick="adjustPrice(this, 20)">+20%</button>
+                            <button class="btn-adjust" onclick="adjustPrice(this, 30)">+30%</button>
+                        </div>
+                        <div class="adjustment-info">
+                            Ajustement: <span class="adjustment-value">0%</span> | Prix de base: <span class="base-price-value">${item.price.toFixed(2)}</span> DZD
+                        </div>
+                    </div>
+                `;
+                container.appendChild(newRow);
+            }
+            
+            closeCatalog();
+            generateInvoice();
+        }
+
+        function adjustPrice(button, percentage) {
+            const row = button.closest('.item-row');
+            const priceInput = row.querySelector('.item-price');
+            const adjustmentDisplay = row.querySelector('.adjustment-value');
+            const basePriceDisplay = row.querySelector('.base-price-value');
+            
+            // Get or set base price
+            let basePrice = parseFloat(priceInput.getAttribute('data-base-price'));
+            if (!basePrice || isNaN(basePrice)) {
+                basePrice = parseFloat(priceInput.value) || 0;
+                priceInput.setAttribute('data-base-price', basePrice);
+            }
+            
+            // Calculate new price based on base price and percentage
+            let newPrice = basePrice * (1 + percentage/100);
+            
+            // Update the display
+            priceInput.value = newPrice.toFixed(2);
+            adjustmentDisplay.textContent = percentage + '%';
+            basePriceDisplay.textContent = basePrice.toFixed(2);
+            
+            generateInvoice();
+        }
+
+        function addItem() {
+            const container = document.getElementById('itemsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'item-row';
+            newRow.innerHTML = `
+                <input type="text" placeholder="Description" class="item-desc">
+                <input type="number" placeholder="Quantité" class="item-qty" min="1" value="1">
+                <input type="number" placeholder="Prix unitaire" class="item-price" min="0" step="0.01">
+                <input type="number" placeholder="TVA %" class="item-tax" min="0" max="100" value="19">
+                <button class="btn-remove" onclick="removeItem(this)">×</button>
+                <div class="adjustment-display">
+                    <div class="adjustment-controls">
+                        <button class="btn-adjust negative" onclick="adjustPrice(this, -30)">-30%</button>
+                        <button class="btn-adjust negative" onclick="adjustPrice(this, -20)">-20%</button>
+                        <button class="btn-adjust negative" onclick="adjustPrice(this, -10)">-10%</button>
+                        <button class="btn-adjust negative" onclick="adjustPrice(this, -5)">-5%</button>
+                        <button class="btn-adjust negative" onclick="adjustPrice(this, -3)">-3%</button>
+                        <button class="btn-adjust negative" onclick="adjustPrice(this, -1)">-1%</button>
+                        <button class="btn-adjust zero" onclick="adjustPrice(this, 0)">0%</button>
+                        <button class="btn-adjust" onclick="adjustPrice(this, 1)">+1%</button>
+                        <button class="btn-adjust" onclick="adjustPrice(this, 3)">+3%</button>
+                        <button class="btn-adjust" onclick="adjustPrice(this, 5)">+5%</button>
+                        <button class="btn-adjust" onclick="adjustPrice(this, 10)">+10%</button>
+                        <button class="btn-adjust" onclick="adjustPrice(this, 20)">+20%</button>
+                        <button class="btn-adjust" onclick="adjustPrice(this, 30)">+30%</button>
+                    </div>
+                    <div class="adjustment-info">
+                        Ajustement: <span class="adjustment-value">0%</span> | Prix de base: <span class="base-price-value">0.00</span> DZD
+                    </div>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function removeItem(btn) {
+            const container = document.getElementById('itemsContainer');
+            if (container.children.length > 1) {
+                btn.parentElement.remove();
+                generateInvoice();
+            }
+        }
+
+        function generateInvoice() {
+            // Get company info
+            const companyName = document.getElementById('companyName').value || 'Votre Entreprise';
+            const companyAddress = document.getElementById('companyAddress').value.replace(/\n/g, '<br>') || 'Adresse de l\'entreprise';
+            const invoiceNumber = document.getElementById('invoiceNumber').value || 'INV-2025-001';
+            const invoiceDate = document.getElementById('invoiceDate').value || new Date().toISOString().split('T')[0];
+            const clientName = document.getElementById('clientName').value || 'Nom du client';
+            const clientAddress = document.getElementById('clientAddress').value.replace(/\n/g, '<br>') || 'Adresse du client';
+
+            // Update preview
+            document.getElementById('previewCompanyName').textContent = companyName;
+            document.getElementById('previewCompanyAddress').innerHTML = companyAddress;
+            document.getElementById('previewInvoiceNumber').textContent = 'FACTURE N° ' + invoiceNumber;
+            document.getElementById('previewDate').textContent = new Date(invoiceDate).toLocaleDateString('fr-FR');
+            document.getElementById('previewClientName').textContent = clientName;
+            document.getElementById('previewClientAddress').innerHTML = clientAddress;
+
+            // Get items
+            const itemRows = document.querySelectorAll('.item-row');
+            const items = [];
+            let subtotal = 0;
+            let totalTax = 0;
+
+            itemRows.forEach(row => {
+                const desc = row.querySelector('.item-desc').value;
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                const tax = parseFloat(row.querySelector('.item-tax').value) || 0;
+
+                if (desc && qty > 0 && price > 0) {
+                    const lineTotal = qty * price;
+                    const lineTax = lineTotal * (tax / 100);
+                    
+                    items.push({
+                        desc, qty, price, tax, lineTotal, lineTax
+                    });
+
+                    subtotal += lineTotal;
+                    totalTax += lineTax;
+                }
+            });
+
+            // Generate table
+            const tbody = document.getElementById('invoiceItems');
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">Aucun article ajouté</td></tr>';
+                document.getElementById('totalsSection').style.display = 'none';
+            } else {
+                items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${item.desc}</td>
+                        <td class="text-right">${item.qty}</td>
+                        <td class="text-right">${item.price.toFixed(2)} DZD</td>
+                        <td class="text-right">${item.tax}%</td>
+                        <td class="text-right">${item.lineTotal.toFixed(2)} DZD</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Update totals
+                const total = subtotal + totalTax;
+                document.getElementById('subtotal').textContent = subtotal.toFixed(2) + ' DZD';
+                document.getElementById('taxAmount').textContent = totalTax.toFixed(2) + ' DZD';
+                document.getElementById('total').textContent = total.toFixed(2) + ' DZD';
+                document.getElementById('totalsSection').style.display = 'block';
+            }
+        }
+
+        // Export functions
+      function exportToPDF() {
+    const invoice = document.getElementById('invoice');
+    const companyName = document.getElementById('companyName').value || 'Facture';
+    const invoiceNumber = document.getElementById('invoiceNumber').value || 'INV-0001';
+
+    // Make sure invoice is visible and fully rendered
+    invoice.style.display = 'block';
+    invoice.style.visibility = 'visible';
+    invoice.style.position = 'relative';
+    invoice.style.opacity = '1';
+
+    // Use a small timeout to ensure rendering before PDF capture
+    setTimeout(() => {
+        const opt = {
+            margin: 0.3,
+            filename: `${companyName.replace(/\s+/g, '_')}_${invoiceNumber}.pdf`,
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: document.documentElement.scrollWidth,
+                windowHeight: document.documentElement.scrollHeight
+            },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(invoice).save().catch(err => {
+            console.error("Erreur lors de l'export PDF :", err);
+            alert("Une erreur est survenue lors de l'exportation du PDF.");
+        });
+    }, 500); // small delay to let rendering settle
+}
+
+
+        function exportToWord() {
+            const invoiceElement = document.getElementById('invoice');
+            
+            // Simple HTML for Word
+            const invoiceHTML = `
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Facture ${document.getElementById('invoiceNumber').value || ''}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                    </style>
+                </head>
+                <body>
+                    ${invoiceElement.innerHTML}
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([invoiceHTML], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `facture_${document.getElementById('invoiceNumber').value || 'non-numérotée'}.doc`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportCatalogToJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(catalog, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "catalogue_produits.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        // Close modals when clicking outside
+        document.getElementById('catalogModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCatalog();
+            }
+        });
+
+        document.getElementById('itemFormModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeItemForm();
+            }
+        });
+
+        // Generate preview on page load
+        generateInvoice();
+    </script>
+</body>
+</html>
